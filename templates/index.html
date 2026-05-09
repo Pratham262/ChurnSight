@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChurnSight — AI Customer Risk Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            ink:    { DEFAULT: '#0a0a0f', 50: '#f4f4f8' },
+            brand:  { DEFAULT: '#6c63ff', light: '#a89dff', dark: '#4b43cc' },
+            danger: { DEFAULT: '#ff4757', light: '#ff6b7a' },
+            warn:   { DEFAULT: '#ffa502', light: '#ffbe4d' },
+            safe:   { DEFAULT: '#2ed573', light: '#7bed9f' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #0a0a0f; color: #e8e8f0; }
+    h1, h2, h3, .font-display { font-family: 'Syne', sans-serif; }
+
+    .glass {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+    }
+    .glass-hover:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(108,99,255,0.3);
+      transition: all .2s;
+    }
+
+    /* Animated gradient orb */
+    .orb {
+      position: fixed; pointer-events: none; z-index: 0;
+      border-radius: 50%; filter: blur(90px); opacity: .18;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(40px, 30px) scale(1.1); }
+    }
+
+    /* Range slider */
+    input[type=range] { accent-color: #6c63ff; }
+
+    /* Tab active */
+    .tab-btn.active {
+      background: #6c63ff;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(108,99,255,.4);
+    }
+
+    /* Gauge ring */
+    .gauge-ring { transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+
+    /* Probability bar */
+    .prob-bar { transition: width .8s cubic-bezier(.4,0,.2,1); }
+
+    /* Slide in */
+    @keyframes slideUp {
+      from { opacity:0; transform: translateY(20px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .slide-up { animation: slideUp .4s ease both; }
+
+    /* Pulse badge */
+    @keyframes pulse-badge {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,71,87,.4); }
+      50%      { box-shadow: 0 0 0 8px rgba(255,71,87,0); }
+    }
+    .pulse-red { animation: pulse-badge 2s infinite; }
+
+    /* Select & input dark */
+    select, input[type=number] {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      color: #e8e8f0;
+      border-radius: .5rem;
+      padding: .45rem .75rem;
+      font-size: .875rem;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    select:focus, input[type=number]:focus {
+      border-color: #6c63ff;
+      box-shadow: 0 0 0 2px rgba(108,99,255,.25);
+    }
+    select option { background: #1a1a2e; }
+
+    /* Scenario bar */
+    .scenario-fill { transition: width 1s cubic-bezier(.4,0,.2,1); }
+  </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+
+  <!-- Background orbs -->
+  <div class="orb w-96 h-96 bg-brand top-[-100px] left-[-100px]"></div>
+  <div class="orb w-80 h-80 bg-danger top-1/2 right-[-80px]" style="animation-delay:-5s"></div>
+  <div class="orb w-64 h-64 bg-safe bottom-20 left-1/3" style="animation-delay:-9s"></div>
+
+  <div class="relative z-10 max-w-6xl mx-auto px-4 py-10">
+
+    <!-- ── HEADER ── -->
+    <header class="mb-10 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-xl shadow-lg shadow-brand/40">⚡</div>
+          <h1 class="font-display text-3xl font-extrabold tracking-tight">ChurnSight</h1>
+        </div>
+        <p class="text-sm text-white/40 ml-[52px]">AI-powered Customer Risk Analyzer</p>
+      </div>
+      <div class="glass rounded-xl px-4 py-2 text-xs text-white/50 hidden sm:block">
+        AdaBoost · 10 Features · Real-time
+      </div>
+    </header>
+
+    <!-- ── STAT BADGES ── -->
+    <div class="grid grid-cols-3 gap-3 mb-8">
+      <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-display font-bold text-brand">3</div>
+        <div class="text-xs text-white/40 mt-1">Risk Levels</div>
+      </div>
+      <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-display font-bold text-safe">10</div>
+        <div class="text-xs text-white/40 mt-1">Input Features</div>
+      </div>
+      <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-2xl font-display font-bold text-warn">4</div>
+        <div class="text-xs text-white/40 mt-1">Scenario Steps</div>
+      </div>
+    </div>
+
+    <!-- ── TABS ── -->
+    <div class="flex gap-2 mb-6">
+      <button onclick="switchTab('predict')" id="tab-predict"
+        class="tab-btn active font-display font-semibold text-sm px-5 py-2.5 rounded-xl transition-all">
+        🎯 Predict
+      </button>
+      <button onclick="switchTab('scenario')" id="tab-scenario"
+        class="tab-btn glass glass-hover font-display font-semibold text-sm px-5 py-2.5 rounded-xl transition-all">
+        📊 Scenario Simulation
+      </button>
+    </div>
+
+    <!-- ── PREDICT TAB ── -->
+    <div id="pane-predict">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <!-- INPUT FORM -->
+        <div class="lg:col-span-3 glass rounded-2xl p-6">
+          <h2 class="font-display text-lg font-bold mb-5 text-white/90">Customer Profile</h2>
+          <div class="grid grid-cols-2 gap-4" id="predict-form">
+
+            <!-- Age -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Age</label>
+              <input type="number" id="age" min="18" max="100" value="35" placeholder="18–100"/>
+            </div>
+            <!-- Gender -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Gender</label>
+              <select id="gender">
+                <option value="1">Male</option>
+                <option value="0">Female</option>
+              </select>
+            </div>
+            <!-- Tenure -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Tenure (months)</label>
+              <input type="number" id="tenure" min="0" max="120" value="12"/>
+            </div>
+            <!-- Usage Frequency -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Usage Frequency / month</label>
+              <input type="number" id="usage_frequency" min="0" max="100" value="15"/>
+            </div>
+            <!-- Support Calls -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Support Calls</label>
+              <input type="number" id="support_calls" min="0" max="50" value="2"/>
+            </div>
+            <!-- Payment Delay -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Payment Delay (days)</label>
+              <input type="number" id="payment_delay" min="0" max="90" value="5"/>
+            </div>
+            <!-- Subscription Type -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Subscription Type</label>
+              <select id="subscription_type">
+                <option value="0">Basic</option>
+                <option value="1" selected>Standard</option>
+                <option value="2">Premium</option>
+              </select>
+            </div>
+            <!-- Contract Length -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Contract Length</label>
+              <select id="contract_length">
+                <option value="0">Quarterly</option>
+                <option value="1" selected>Monthly</option>
+                <option value="2">Annual</option>
+              </select>
+            </div>
+            <!-- Total Spend -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Total Spend ($)</label>
+              <input type="number" id="total_spend" min="0" value="500"/>
+            </div>
+            <!-- Last Interaction -->
+            <div>
+              <label class="block text-xs text-white/50 mb-1.5">Last Interaction (days ago)</label>
+              <input type="number" id="last_interaction" min="0" max="365" value="30"/>
+            </div>
+          </div>
+
+          <button onclick="runPredict()"
+            class="mt-6 w-full bg-brand hover:bg-brand-dark text-white font-display font-bold text-sm py-3 rounded-xl transition-all shadow-lg shadow-brand/30 hover:shadow-brand/50 active:scale-[.98]">
+            Analyze Customer Risk →
+          </button>
+        </div>
+
+        <!-- RESULT PANEL -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+
+          <!-- Gauge Card -->
+          <div class="glass rounded-2xl p-6 flex flex-col items-center" id="result-card">
+            <div id="result-placeholder" class="text-center py-8">
+              <div class="text-4xl mb-3 opacity-30">🔍</div>
+              <p class="text-sm text-white/30">Fill the form and analyze</p>
+            </div>
+
+            <div id="result-content" class="hidden w-full slide-up">
+              <!-- Gauge -->
+              <div class="flex justify-center mb-4">
+                <svg width="160" height="100" viewBox="0 0 160 100">
+                  <path d="M 10 90 A 70 70 0 0 1 150 90" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12" stroke-linecap="round"/>
+                  <path id="gauge-arc" d="M 10 90 A 70 70 0 0 1 150 90" fill="none" stroke="#6c63ff" stroke-width="12" stroke-linecap="round"
+                    stroke-dasharray="220" stroke-dashoffset="220" class="gauge-ring"/>
+                  <text x="80" y="78" text-anchor="middle" fill="white" font-family="Syne" font-size="22" font-weight="800" id="gauge-pct">0%</text>
+                </svg>
+              </div>
+
+              <!-- Verdict badge -->
+              <div id="verdict-badge" class="text-center mb-4">
+                <span class="text-lg font-display font-bold" id="verdict-text"></span>
+              </div>
+
+              <!-- Risk meter -->
+              <div class="mb-4">
+                <div class="flex justify-between text-xs text-white/40 mb-1.5">
+                  <span>Churn Probability</span>
+                  <span id="prob-pct-text">0%</span>
+                </div>
+                <div class="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                  <div id="prob-bar" class="prob-bar h-2 rounded-full w-0"></div>
+                </div>
+              </div>
+
+              <!-- Risk level -->
+              <div id="risk-box" class="rounded-xl p-4 mb-3 text-center">
+                <div class="text-xs text-white/50 mb-1">Risk Level</div>
+                <div class="font-display font-bold text-lg" id="risk-level-text"></div>
+              </div>
+
+              <!-- Action -->
+              <div class="glass rounded-xl p-4">
+                <div class="text-xs text-white/40 mb-1.5">Recommended Action</div>
+                <div class="font-medium text-sm leading-snug" id="action-text"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div id="predict-error" class="hidden glass border border-danger/30 rounded-2xl p-4 text-sm text-danger slide-up"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SCENARIO TAB ── -->
+    <div id="pane-scenario" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <!-- Same form for scenario -->
+        <div class="lg:col-span-3 glass rounded-2xl p-6">
+          <h2 class="font-display text-lg font-bold mb-2 text-white/90">Customer Profile</h2>
+          <p class="text-xs text-white/40 mb-5">Simulates how churn risk escalates as payment delay worsens</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-xs text-white/50 mb-1.5">Age</label><input type="number" id="s-age" value="35"/></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Gender</label>
+              <select id="s-gender"><option value="1">Male</option><option value="0">Female</option></select></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Tenure (months)</label><input type="number" id="s-tenure" value="12"/></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Usage Frequency</label><input type="number" id="s-usage_frequency" value="15"/></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Support Calls</label><input type="number" id="s-support_calls" value="2"/></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Payment Delay (days)</label><input type="number" id="s-payment_delay" value="5"/></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Subscription Type</label>
+              <select id="s-subscription_type"><option value="0">Basic</option><option value="1" selected>Standard</option><option value="2">Premium</option></select></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Contract Length</label>
+              <select id="s-contract_length"><option value="0">Quarterly</option><option value="1" selected>Monthly</option><option value="2">Annual</option></select></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Total Spend ($)</label><input type="number" id="s-total_spend" value="500"/></div>
+            <div><label class="block text-xs text-white/50 mb-1.5">Last Interaction (days)</label><input type="number" id="s-last_interaction" value="30"/></div>
+          </div>
+          <button onclick="runScenario()"
+            class="mt-6 w-full bg-brand hover:bg-brand-dark text-white font-display font-bold text-sm py-3 rounded-xl transition-all shadow-lg shadow-brand/30 active:scale-[.98]">
+            Run Scenario Simulation →
+          </button>
+        </div>
+
+        <!-- Scenario results -->
+        <div class="lg:col-span-2">
+          <div id="scenario-placeholder" class="glass rounded-2xl p-8 text-center h-full flex flex-col items-center justify-center">
+            <div class="text-4xl mb-3 opacity-30">📈</div>
+            <p class="text-sm text-white/30">Run simulation to see how risk<br/>escalates with payment delays</p>
+          </div>
+          <div id="scenario-results" class="hidden space-y-3 slide-up">
+            <h3 class="font-display font-bold text-sm text-white/60 uppercase tracking-widest mb-4">Risk Escalation</h3>
+          </div>
+          <div id="scenario-error" class="hidden glass border border-danger/30 rounded-2xl p-4 text-sm text-danger mt-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FOOTER ── -->
+    <footer class="mt-16 text-center text-xs text-white/20">
+      ChurnSight · AdaBoost Ensemble · Built with Flask + Tailwind
+    </footer>
+  </div>
+
+  <script>
+    // ── TAB SWITCHING ────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      ['predict','scenario'].forEach(t => {
+        document.getElementById(`pane-${t}`).classList.toggle('hidden', t !== tab);
+        document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+        document.getElementById(`tab-${t}`).classList.toggle('glass', t !== tab);
+        document.getElementById(`tab-${t}`).classList.toggle('glass-hover', t !== tab);
+      });
+    }
+
+    // ── GATHER INPUTS ────────────────────────────────────────────────────────
+    const FIELDS = ['age','gender','tenure','usage_frequency','support_calls',
+                    'payment_delay','subscription_type','contract_length',
+                    'total_spend','last_interaction'];
+
+    function gatherInputs(prefix='') {
+      const data = {};
+      FIELDS.forEach(f => {
+        const el = document.getElementById(prefix + f);
+        data[f] = parseFloat(el.value);
+      });
+      return data;
+    }
+
+    // ── PREDICT ──────────────────────────────────────────────────────────────
+    async function runPredict() {
+      const btn = event.currentTarget;
+      btn.textContent = 'Analyzing…';
+      btn.disabled = true;
+
+      document.getElementById('predict-error').classList.add('hidden');
+
+      try {
+        const res  = await fetch('/api/predict', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(gatherInputs())
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderResult(data);
+      } catch(e) {
+        const err = document.getElementById('predict-error');
+        err.textContent = '⚠ ' + e.message;
+        err.classList.remove('hidden');
+      } finally {
+        btn.textContent = 'Analyze Customer Risk →';
+        btn.disabled = false;
+      }
+    }
+
+    function renderResult(d) {
+      document.getElementById('result-placeholder').classList.add('hidden');
+      const content = document.getElementById('result-content');
+      content.classList.remove('hidden');
+      content.classList.remove('slide-up');
+      void content.offsetWidth; // reflow
+      content.classList.add('slide-up');
+
+      const prob = d.churn_probability;
+
+      // Gauge (arc length ~220 for semicircle)
+      const offset = 220 - (prob / 100) * 220;
+      const arc = document.getElementById('gauge-arc');
+      arc.setAttribute('stroke-dashoffset', 220);
+      setTimeout(() => arc.setAttribute('stroke-dashoffset', offset), 50);
+      arc.setAttribute('stroke', prob > 70 ? '#ff4757' : prob >= 50 ? '#ffa502' : '#2ed573');
+      document.getElementById('gauge-pct').textContent = prob.toFixed(1) + '%';
+
+      // Verdict
+      const vt = document.getElementById('verdict-text');
+      vt.textContent = d.icon + ' ' + d.verdict;
+      vt.className = prob > 70 ? 'text-danger font-display font-bold text-lg' :
+                     prob >= 50 ? 'text-warn font-display font-bold text-lg' :
+                                  'text-safe font-display font-bold text-lg';
+
+      // Bar
+      document.getElementById('prob-pct-text').textContent = prob.toFixed(1) + '%';
+      const bar = document.getElementById('prob-bar');
+      bar.style.width = '0%';
+      setTimeout(() => bar.style.width = prob + '%', 50);
+      bar.className = `prob-bar h-2 rounded-full ${
+        prob > 70 ? 'bg-danger' : prob >= 50 ? 'bg-warn' : 'bg-safe'
+      }`;
+
+      // Risk box
+      const rb = document.getElementById('risk-box');
+      rb.className = `rounded-xl p-4 mb-3 text-center ${
+        prob > 70  ? 'bg-danger/10 border border-danger/20' :
+        prob >= 50 ? 'bg-warn/10 border border-warn/20' :
+                     'bg-safe/10 border border-safe/20'
+      }`;
+      const rt = document.getElementById('risk-level-text');
+      rt.textContent = d.risk_level + ' Risk';
+      rt.className = `font-display font-bold text-lg ${
+        prob > 70 ? 'text-danger' : prob >= 50 ? 'text-warn' : 'text-safe'
+      }`;
+      if (prob > 70) rb.classList.add('pulse-red');
+      else rb.classList.remove('pulse-red');
+
+      document.getElementById('action-text').textContent = d.action;
+    }
+
+    // ── SCENARIO ─────────────────────────────────────────────────────────────
+    async function runScenario() {
+      const btn = event.currentTarget;
+      btn.textContent = 'Simulating…';
+      btn.disabled = true;
+
+      document.getElementById('scenario-error').classList.add('hidden');
+
+      try {
+        const res  = await fetch('/api/scenario', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(gatherInputs('s-'))
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderScenario(data);
+      } catch(e) {
+        const err = document.getElementById('scenario-error');
+        err.textContent = '⚠ ' + e.message;
+        err.classList.remove('hidden');
+      } finally {
+        btn.textContent = 'Run Scenario Simulation →';
+        btn.disabled = false;
+      }
+    }
+
+    function renderScenario(results) {
+      document.getElementById('scenario-placeholder').classList.add('hidden');
+      const container = document.getElementById('scenario-results');
+      container.innerHTML = '<h3 class="font-display font-bold text-sm text-white/60 uppercase tracking-widest mb-4">Risk Escalation</h3>';
+      container.classList.remove('hidden');
+      container.classList.remove('slide-up');
+      void container.offsetWidth;
+      container.classList.add('slide-up');
+
+      const colors = { red:'bg-danger', amber:'bg-warn', green:'bg-safe' };
+      const textC  = { red:'text-danger', amber:'text-warn', green:'text-safe' };
+      const bgC    = { red:'bg-danger/10 border-danger/20', amber:'bg-warn/10 border-warn/20', green:'bg-safe/10 border-safe/20' };
+
+      results.forEach((r, i) => {
+        const card = document.createElement('div');
+        card.className = `glass rounded-xl p-4 border ${bgC[r.color]}`;
+        card.style.animationDelay = `${i * 80}ms`;
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <div class="font-display font-bold text-sm">${r.label}</div>
+              <div class="text-xs text-white/40 mt-0.5">${r.action}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-display font-bold text-lg ${textC[r.color]}">${r.churn_probability}%</div>
+              <div class="text-xs ${textC[r.color]} opacity-70">${r.risk_level}</div>
+            </div>
+          </div>
+          <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+            <div class="scenario-fill h-1.5 rounded-full ${colors[r.color]} w-0" data-width="${r.churn_probability}"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Animate bars after DOM paint
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.querySelectorAll('.scenario-fill').forEach(b => {
+          b.style.width = b.dataset.width + '%';
+        });
+      }));
+    }
+  </script>
+</body>
+</html>

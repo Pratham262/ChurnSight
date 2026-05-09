@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ChurnSight — Render Deployment Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#0d0d14;color:#e0e0f0;line-height:1.6;min-height:100vh}
+.page{max-width:860px;margin:0 auto;padding:48px 24px 80px}
+
+/* Header */
+.hero{text-align:center;margin-bottom:56px}
+.logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:20px}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#6c63ff,#a89dff);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 8px 24px rgba(108,99,255,.4)}
+h1{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;background:linear-gradient(90deg,#fff,#a89dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:rgba(255,255,255,.4);font-size:.95rem;margin-top:6px}
+
+/* Timeline steps */
+.timeline{position:relative;padding-left:0}
+.step{display:grid;grid-template-columns:56px 1fr;gap:0 20px;margin-bottom:8px}
+.step-left{display:flex;flex-direction:column;align-items:center}
+.step-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#4b43cc);color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 16px rgba(108,99,255,.35);z-index:1}
+.step-line{width:2px;background:linear-gradient(180deg,rgba(108,99,255,.4),rgba(108,99,255,.05));flex:1;margin:6px 0}
+.step-body{padding-bottom:36px}
+.step-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;color:#fff;margin-bottom:10px;margin-top:10px}
+
+/* Cards */
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px 22px;margin-bottom:12px}
+.card-label{font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px}
+
+/* Code blocks */
+pre,code{font-family:'DM Mono',monospace}
+.code-block{background:#0a0a10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px 18px;font-size:.82rem;color:#c5c5f0;overflow-x:auto;position:relative;margin:10px 0}
+.code-block .comment{color:rgba(255,255,255,.3)}
+.code-block .cmd{color:#a89dff}
+.code-block .str{color:#7bed9f}
+.code-block .kw{color:#ff6b7a}
+.copy-btn{position:absolute;top:10px;right:10px;background:rgba(108,99,255,.2);border:1px solid rgba(108,99,255,.3);color:#a89dff;font-size:.7rem;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.copy-btn:hover{background:rgba(108,99,255,.4)}
+.copy-btn.copied{color:#7bed9f;border-color:rgba(46,213,115,.4)}
+
+/* File tree */
+.filetree{background:#0a0a10;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px;font-family:'DM Mono',monospace;font-size:.82rem;line-height:1.9}
+.tree-dir{color:#a89dff}
+.tree-file{color:#c5c5f0}
+.tree-highlight{color:#7bed9f;font-weight:500}
+.tree-note{color:rgba(255,255,255,.3);font-size:.75rem;margin-left:8px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:500}
+.badge-purple{background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3);color:#a89dff}
+.badge-green{background:rgba(46,213,115,.12);border:1px solid rgba(46,213,115,.25);color:#7bed9f}
+.badge-red{background:rgba(255,71,87,.12);border:1px solid rgba(255,71,87,.25);color:#ff6b7a}
+.badge-amber{background:rgba(255,165,2,.12);border:1px solid rgba(255,165,2,.25);color:#ffa502}
+
+/* Alert boxes */
+.alert{border-radius:12px;padding:14px 18px;margin:12px 0;font-size:.88rem;border:1px solid}
+.alert-info{background:rgba(108,99,255,.08);border-color:rgba(108,99,255,.2);color:#c0bbff}
+.alert-warn{background:rgba(255,165,2,.08);border-color:rgba(255,165,2,.2);color:#ffc94d}
+.alert-success{background:rgba(46,213,115,.08);border-color:rgba(46,213,115,.2);color:#7bed9f}
+
+/* Render UI mockup */
+.mockup{background:#111118;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;margin:12px 0}
+.mockup-bar{background:#1a1a2a;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:8px}
+.mockup-dot{width:10px;height:10px;border-radius:50%}
+.mockup-url{flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:4px 12px;font-family:'DM Mono',monospace;font-size:.75rem;color:rgba(255,255,255,.4);text-align:center}
+.mockup-body{padding:18px 20px}
+.mockup-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.85rem}
+.mockup-row:last-child{border-bottom:none}
+.mockup-key{color:rgba(255,255,255,.5)}
+.mockup-val{font-family:'DM Mono',monospace;font-size:.8rem}
+
+/* Field table */
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:10px 0}
+th{text-align:left;padding:8px 14px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.07)}
+td{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.05);color:#d0d0e8}
+td code{background:rgba(108,99,255,.15);color:#c0bbff;padding:2px 7px;border-radius:5px;font-size:.8rem}
+tr:last-child td{border-bottom:none}
+
+/* Section divider */
+.divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:40px 0}
+
+/* Success banner */
+.success-banner{background:linear-gradient(135deg,rgba(46,213,115,.12),rgba(108,99,255,.12));border:1px solid rgba(46,213,115,.2);border-radius:16px;padding:24px 28px;text-align:center;margin-top:20px}
+.success-banner h3{font-family:'Syne',sans-serif;font-size:1.3rem;color:#7bed9f;margin-bottom:8px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(108,99,255,.3);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:#fff">ChurnSight</span>
+    </div>
+    <h1>Deploy to Render.com</h1>
+    <p class="subtitle">Step-by-step guide · Free hosting · Public URL in ~5 minutes</p>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <span class="badge badge-purple">🐍 Flask + Gunicorn</span>
+      <span class="badge badge-green">🆓 Free Tier</span>
+      <span class="badge badge-amber">⏱ ~5 min setup</span>
+    </div>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div class="timeline">
+  <div class="step">
+    <div class="step-left">
+      <div class="step-num">1</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-title">Prepare your project folder</div>
+      <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-bottom:14px">
+        Your final folder must look exactly like this before pushing to GitHub.
+        The two <span style="color:#7bed9f">highlighted</span> pickle files are yours — copy them in.
+      </p>
+      <div class="filetree">
+<span class="tree-dir">churnsight_app/</span>
+├── <span class="tree-highlight">adaboost_model.pkl</span>  <span class="tree-note">← your model file</span>
+├── <span class="tree-highlight">scaler.pkl</span>           <span class="tree-note">← your scaler file</span>
+├── <span class="tree-file">app.py</span>
+├── <span class="tree-file">wsgi.py</span>
+├── <span class="tree-file">requirements.txt</span>
+├── <span class="tree-file">render.yaml</span>
+├── <span class="tree-file">.gitignore</span>
+└── <span class="tree-dir">templates/</span>
+    └── <span class="tree-file">index.html</span>
+      </div>
+      <div class="alert alert-warn">
+        ⚠️ <strong>Important:</strong> Copy your <code>adaboost_model.pkl</code> and <code>scaler.pkl</code> files into the <code>churnsight_app/</code> folder before the next step.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="step">
+    <div class="step-left">
+      <div class="step-num">2</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-title">Push to GitHub</div>
+      <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-bottom:14px">
+        Open a terminal inside your <code style="color:#a89dff">churnsight_app/</code> folder and run these commands one by one:
+      </p>
+
+      <div class="card-label" style="color:rgba(255,255,255,.3);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Terminal commands</div>
+
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<span class="comment"># 1. Initialize git repo</span>
+<span class="cmd">git init</span>
+
+<span class="comment"># 2. Add all files</span>
+<span class="cmd">git add .</span>
+
+<span class="comment"># 3. First commit</span>
+<span class="cmd">git commit -m <span class="str">"initial: ChurnSight Flask app"</span></span>
+
+<span class="comment"># 4. Create repo on GitHub first (github.com → New Repository)
+#    Name it: churnsight  — then copy the URL it gives you</span>
+<span class="cmd">git remote add origin https://github.com/<span class="kw">YOUR_USERNAME</span>/churnsight.git</span>
+
+<span class="comment"># 5. Push</span>
+<span class="cmd">git push -u origin main</span>
+      </div>
+
+      <div class="alert alert-info">
+        💡 Go to <strong>github.com → + → New repository</strong>, name it <strong>churnsight</strong>, keep it public, then copy the HTTPS URL for step 4 above.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="step">
+    <div class="step-left">
+      <div class="step-num">3</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-title">Create account on Render.com</div>
+      <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-bottom:14px">
+        Go to <strong style="color:#a89dff">render.com</strong> → click <strong>Get Started for Free</strong> → sign up with your <strong>GitHub account</strong> (easiest — Render can then see your repos directly).
+      </p>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot" style="background:#ff5f57"></div>
+          <div class="mockup-dot" style="background:#febc2e"></div>
+          <div class="mockup-dot" style="background:#28c840"></div>
+          <div class="mockup-url">render.com/register</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-row"><span class="mockup-key">Sign up with</span><span class="mockup-val" style="color:#7bed9f">✓ GitHub (recommended)</span></div>
+          <div class="mockup-row"><span class="mockup-key">Plan</span><span class="mockup-val" style="color:#ffa502">Free</span></div>
+          <div class="mockup-row"><span class="mockup-key">Credit card required?</span><span class="mockup-val" style="color:#7bed9f">No</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ── -->
+  <div class="step">
+    <div class="step-left">
+      <div class="step-num">4</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-title">Create a new Web Service on Render</div>
+      <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-bottom:14px">
+        Inside Render dashboard, follow these clicks:
+      </p>
+
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-label">Navigation path</div>
+        <div style="font-size:.9rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="background:rgba(108,99,255,.15);padding:4px 10px;border-radius:6px;color:#c0bbff">Dashboard</span>
+          <span style="color:rgba(255,255,255,.3)">→</span>
+          <span style="background:rgba(108,99,255,.15);padding:4px 10px;border-radius:6px;color:#c0bbff">+ New</span>
+          <span style="color:rgba(255,255,255,.3)">→</span>
+          <span style="background:rgba(108,99,255,.3);padding:4px 10px;border-radius:6px;color:#fff;font-weight:600">Web Service</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Connect repository</div>
+        <div style="font-size:.88rem;color:rgba(255,255,255,.6);line-height:1.8">
+          1. Click <strong style="color:#fff">Connect account</strong> → authorize GitHub<br/>
+          2. Find your <strong style="color:#a89dff">churnsight</strong> repo in the list<br/>
+          3. Click <strong style="color:#7bed9f">Connect</strong>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:10px">
+        <div class="card-label">Fill in these settings exactly</div>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Name</td><td><code>churnsight</code></td></tr>
+          <tr><td>Region</td><td><code>Oregon (US West)</code> or closest to you</td></tr>
+          <tr><td>Branch</td><td><code>main</code></td></tr>
+          <tr><td>Runtime</td><td><code>Python 3</code></td></tr>
+          <tr><td>Build Command</td><td><code>pip install -r requirements.txt</code></td></tr>
+          <tr><td>Start Command</td><td><code>gunicorn wsgi:app --workers 2 --timeout 120</code></td></tr>
+          <tr><td>Instance Type</td><td><code>Free</code></td></tr>
+        </table>
+      </div>
+
+      <div class="alert alert-info">
+        💡 Render auto-detects the <code>render.yaml</code> file and may pre-fill some fields for you. Double-check the Start Command is correct.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 5 ── -->
+  <div class="step">
+    <div class="step-left">
+      <div class="step-num">5</div>
+      <div class="step-line"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-title">Click "Create Web Service" and wait</div>
+      <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-bottom:14px">
+        Render will now build and deploy your app. Watch the build log — it takes about 2–4 minutes.
+      </p>
+      <div class="card">
+        <div class="card-label">Build log — what you'll see</div>
+        <div class="code-block" style="margin:0">
+<span class="comment">==> Cloning from https://github.com/you/churnsight</span>
+<span class="comment">==> Running build command: pip install -r requirements.txt</span>
+<span class="str">Collecting flask...</span>
+<span class="str">Collecting gunicorn...</span>
+<span class="str">Collecting scikit-learn...</span>
+<span class="comment">==> Build successful 🎉</span>
+<span class="comment">==> Starting service with: gunicorn wsgi:app</span>
+<span class="str">Listening on http://0.0.0.0:10000</span>
+        </div>
+      </div>
+      <div class="alert alert-success" style="margin-top:12px">
+        ✅ When you see <strong>"Your service is live"</strong> or the status turns green — you're done!
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 6 ── -->
+  <div class="step">
+    <div class="step-left">
+      <div class="step-num">6</div>
+      <div class="step-line" style="background:transparent"></div>
+    </div>
+    <div class="step-body">
+      <div class="step-title">Get your public URL 🎉</div>
+      <p style="color:rgba(255,255,255,.5);font-size:.9rem;margin-bottom:14px">
+        Render gives you a permanent public URL at the top of your service page:
+      </p>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot" style="background:#ff5f57"></div>
+          <div class="mockup-dot" style="background:#febc2e"></div>
+          <div class="mockup-dot" style="background:#28c840"></div>
+          <div class="mockup-url" style="color:#7bed9f">https://churnsight.onrender.com</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-row"><span class="mockup-key">Status</span><span class="mockup-val" style="color:#7bed9f">● Live</span></div>
+          <div class="mockup-row"><span class="mockup-key">Auto-deploy on git push</span><span class="mockup-val" style="color:#7bed9f">✓ Enabled</span></div>
+          <div class="mockup-row"><span class="mockup-key">Free SSL (HTTPS)</span><span class="mockup-val" style="color:#7bed9f">✓ Automatic</span></div>
+        </div>
+      </div>
+      <p style="color:rgba(255,255,255,.4);font-size:.85rem;margin-top:10px">
+        Share <strong style="color:#a89dff">https://churnsight.onrender.com</strong> (or whatever Render assigns) with anyone — it works in any browser, no install needed.
+      </p>
+    </div>
+  </div>
+  </div><!-- end timeline -->
+
+  <hr class="divider"/>
+
+  <!-- UPDATES SECTION -->
+  <h2 style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:16px">🔄 How to update your app later</h2>
+  <p style="color:rgba(255,255,255,.45);font-size:.88rem;margin-bottom:12px">Every time you push to GitHub, Render auto-redeploys. No manual steps needed.</p>
+  <div class="code-block">
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<span class="comment"># After making any change to your files:</span>
+<span class="cmd">git add .</span>
+<span class="cmd">git commit -m <span class="str">"update: describe your change"</span></span>
+<span class="cmd">git push</span>
+<span class="comment"># Render detects the push and redeploys automatically ✓</span>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- TROUBLESHOOTING -->
+  <h2 style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:16px">🛠 Troubleshooting</h2>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="card">
+      <div style="font-weight:600;color:#ff6b7a;margin-bottom:6px">❌ Build fails: "No module named sklearn"</div>
+      <div style="font-size:.87rem;color:rgba(255,255,255,.5)">Make sure <code>scikit-learn</code> is in your <code>requirements.txt</code> (not <code>sklearn</code>). The package name on PyPI is <code>scikit-learn</code>.</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;color:#ff6b7a;margin-bottom:6px">❌ "FileNotFoundError: adaboost_model.pkl"</div>
+      <div style="font-size:.87rem;color:rgba(255,255,255,.5)">You forgot to commit the pickle files. Run <code>git add adaboost_model.pkl scaler.pkl</code> then commit and push again.</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;color:#ffa502;margin-bottom:6px">⚠️ App sleeps after 15 minutes of inactivity (free tier)</div>
+      <div style="font-size:.87rem;color:rgba(255,255,255,.5)">Free Render services spin down when idle. The first request after sleep takes ~30 seconds to wake up. This is normal on the free plan.</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;color:#ffa502;margin-bottom:6px">⚠️ "Application failed to respond"</div>
+      <div style="font-size:.87rem;color:rgba(255,255,255,.5)">Check that your Start Command is exactly <code>gunicorn wsgi:app --workers 2 --timeout 120</code> and that <code>wsgi.py</code> is in your repo root.</div>
+    </div>
+  </div>
+
+  <!-- SUCCESS BANNER -->
+  <div class="success-banner" style="margin-top:40px">
+    <h3>🚀 Your app will be live at</h3>
+    <div style="font-family:'DM Mono',monospace;font-size:1.1rem;color:#a89dff;margin:8px 0">https://churnsight.onrender.com</div>
+    <p style="color:rgba(255,255,255,.4);font-size:.85rem;margin-top:8px">Free · HTTPS · Auto-deploy on every git push</p>
+  </div>
+
+</div>
+
+<script>
+function copyCode(btn) {
+  const block = btn.closest('.code-block');
+  const text = block.innerText.replace('Copy','').replace('Copied!','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
